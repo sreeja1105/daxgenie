@@ -60,6 +60,13 @@ def test_generate_endpoint_requires_service_api_key(monkeypatch):
     assert r2.json()["result"] == "MOCK_RESPONSE"
 
 
+def test_healthz_endpoint():
+    client = TestClient(api.app)
+    r = client.get("/healthz")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok"}
+
+
 def test_explain_endpoint_blank_text_returns_400(monkeypatch):
     monkeypatch.setenv("SERVICE_API_KEY", "")
     client = TestClient(api.app)

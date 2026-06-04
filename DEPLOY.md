@@ -14,6 +14,7 @@ This guide covers deploying DAXGenie to a cloud platform for a public demo.
 - [ ] Confirm `requirements.txt` includes `google-genai`
 - [ ] Copy `.env.example` to `.env` and set `GEMINI_API_KEY`
 - [ ] Optionally set `SERVICE_API_KEY` for secure API access
+- [ ] Confirm local FastAPI health endpoint is reachable at `http://localhost:8000/healthz`
 - [ ] Build the Docker image locally: `docker build -t daxgenie .`
 - [ ] Verify the app runs locally: `streamlit run app.py`
 - [ ] Push changes to GitHub before cloud deployment

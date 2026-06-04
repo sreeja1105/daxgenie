@@ -138,6 +138,11 @@ class TextIn(BaseModel):
 app = FastAPI(title="DAXGenie API")
 
 
+@app.get("/healthz")
+async def health_check():
+    return {"status": "ok"}
+
+
 @app.post("/generate")
 async def generate_dax(payload: TextIn, key: str = Depends(_verify_api_key)):
     if not payload.text.strip():

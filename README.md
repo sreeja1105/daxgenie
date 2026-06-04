@@ -58,6 +58,8 @@ streamlit run app.py
 
 Open http://localhost:8501 to view the demo.
 
+When you enable the local API backend in the Streamlit sidebar, DAXGenie will show the FastAPI backend health status and call the backend at `API_BACKEND_URL`.
+
 ## Example prompts
 
 Use the example prompts in the Streamlit UI (select a prompt and click "Use example prompt") or paste your own. Example natural-language prompts:
@@ -123,6 +125,7 @@ docker compose up --build
 
 - Streamlit UI: http://localhost:8501
 - FastAPI: http://localhost:8000/docs (interactive API docs)
+- FastAPI health: http://localhost:8000/healthz
 
 ## Deploy to the cloud
 
@@ -146,6 +149,8 @@ curl -X POST http://localhost:8000/generate \
 ```
 
 If `SERVICE_API_KEY` is not set, the API is open (no auth required). The rate limiter still applies to limit abuse.
+
+The FastAPI app also exposes a lightweight health endpoint at `GET /healthz` for container health checks or local status probes.
 
 ## CI
 

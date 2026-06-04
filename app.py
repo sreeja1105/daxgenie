@@ -106,6 +106,21 @@ def call_api(endpoint: str, text: str) -> str:
     return data.get("result", "")
 
 
+def check_backend_health() -> tuple[bool, str]:
+    """Call the local FastAPI health endpoint and return status and message."""
+    url = f"{API_BACKEND_URL.rstrip('/')}/healthz"
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code != 200:
+            return False, f"HTTP {r.status_code}"
+        data = r.json()
+        if data.get("status") == "ok":
+            return True, "Online"
+        return False, f"Unexpected response: {data}"
+    except Exception as e:
+        return False, str(e)
+
+
 # ===== STREAMLIT UI =====
 st.set_page_config(
     page_title="DAXGenie | AI-powered DAX Assistant",
@@ -149,6 +164,13 @@ mode = st.radio(
 # Sidebar option: prefer local API if available
 use_api = st.sidebar.checkbox("Use local API backend (FastAPI)", value=False)
 st.sidebar.markdown(f"**API URL:** {API_BACKEND_URL}")
+
+if use_api:
+    healthy, health_message = check_backend_health()
+    if healthy:
+        st.sidebar.success(f"Backend health: {health_message}")
+    else:
+        st.sidebar.error(f"Backend health: {health_message}")
 
 st.write("")
 
