@@ -121,14 +121,14 @@ st.divider()
 # ===== MODE SELECTOR =====
 mode = st.radio(
     "**What would you like to do?**",
-    ["✨ Generate a DAX formula", "🔍 Explain an existing DAX formula"],
+    [" Generate a DAX formula", " Explain an existing DAX formula"],
     horizontal=True
 )
 
 st.write("")
 
 # ===== GENERATE MODE =====
-if mode == "✨ Generate a DAX formula":
+if mode == " Generate a DAX formula":
     user_request = st.text_area(
         "Describe the calculation you need in plain English:",
         placeholder="Example: Calculate year-over-year sales growth percentage, with rolling 3-month average for smoothing",
@@ -137,7 +137,7 @@ if mode == "✨ Generate a DAX formula":
     
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        generate_clicked = st.button("✨ Generate DAX", type="primary", use_container_width=True)
+        generate_clicked = st.button(" Generate DAX", type="primary", use_container_width=True)
     
     if generate_clicked:
         if user_request.strip():
@@ -158,7 +158,7 @@ else:
     
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        explain_clicked = st.button("🔍 Explain DAX", type="primary", use_container_width=True)
+        explain_clicked = st.button(" Explain DAX", type="primary", use_container_width=True)
     
     if explain_clicked:
         if dax_formula.strip():
