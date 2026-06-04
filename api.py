@@ -4,14 +4,14 @@ import os
 import time
 from threading import Lock
 from dotenv import load_dotenv
-import google.generativeai as genai
+import google.genai as genai
 
 load_dotenv()
 
 # Gemini API key (for model calls)
 api_key = os.getenv("GEMINI_API_KEY")
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-2.5-flash')
+client = genai.Client(api_key=api_key)
+MODEL_NAME = 'gemini-2.5-flash'
 
 # Rate limiter storage (in-memory, demo only)
 _rate_lock = Lock()
@@ -88,8 +88,11 @@ Important rules:
 def call_gemini(prompt: str) -> str:
     """Wrapper to call the configured Gemini model. Returns text or raises."""
     try:
-        response = model.generate_content(prompt)
-        return response.text
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+        )
+        return response.text or ""
     except Exception as e:
         raise RuntimeError(f"Error calling Gemini: {e}")
 

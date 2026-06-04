@@ -40,3 +40,30 @@ def test_rate_limit(monkeypatch):
     # Third request should be rate limited
     r3 = client.post("/generate", json={"text": "test3"})
     assert r3.status_code == 429
+
+
+def test_generate_endpoint_requires_service_api_key(monkeypatch):
+    monkeypatch.setattr(api, "call_gemini", lambda prompt: "MOCK_RESPONSE")
+    monkeypatch.setenv("SERVICE_API_KEY", "secret-key")
+    client = TestClient(api.app)
+
+    r = client.post("/generate", json={"text": "Calculate YoY growth for Sales"})
+    assert r.status_code == 401
+    assert r.json()["detail"] == "Invalid or missing X-API-KEY"
+
+    r2 = client.post(
+        "/generate",
+        headers={"X-API-KEY": "secret-key"},
+        json={"text": "Calculate YoY growth for Sales"}
+    )
+    assert r2.status_code == 200
+    assert r2.json()["result"] == "MOCK_RESPONSE"
+
+
+def test_explain_endpoint_blank_text_returns_400(monkeypatch):
+    monkeypatch.setenv("SERVICE_API_KEY", "")
+    client = TestClient(api.app)
+
+    r = client.post("/explain", json={"text": ""})
+    assert r.status_code == 400
+    assert r.json()["detail"] == "`text` is required"

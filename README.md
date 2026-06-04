@@ -8,7 +8,7 @@ DAXGenie is an open-source Streamlit app that helps Power BI analysts:
 - Generate DAX formulas from plain-English descriptions
 - Explain and break down existing DAX formulas
 
-It integrates with an LLM backend (the project currently uses Google Gemini in `app.py`) and is designed as a small, shareable portfolio piece.
+It integrates with an LLM backend using the Google Gemini Developer API via the official `google-genai` SDK in `app.py` and is designed as a small, shareable portfolio piece.
 
 ## Features
 
@@ -41,6 +41,8 @@ python -m venv venv
 venv\Scripts\activate    # Windows
 pip install -r requirements.txt
 ```
+
+The app now uses the official `google-genai` package for Gemini API access.
 
 3. (Optional) Validate the setup:
 
@@ -78,6 +80,35 @@ Build and run the container:
 ```bash
 docker build -t daxgenie:latest .
 docker run -p 8501:8501 --env-file .env daxgenie:latest
+```
+
+## Render deployment
+
+A `render.yaml` file is included for Render deployments. It configures both the `daxgenie-api` and `daxgenie-web` services, with the web app pointing to the API backend at `http://daxgenie-api:8000`.
+
+## Other deployment options
+
+- `railway.json` is included to help Railway detect the Dockerfile and deploy the app.
+- `fly.toml` is included to help Fly.io deploy the app from the same repository.
+
+> Note: Railway and Fly use the same Dockerfile for the app. Set `GEMINI_API_KEY` and optional `SERVICE_API_KEY` in the platform environment settings. If you deploy the FastAPI backend separately, update `API_BACKEND_URL` to the backend's public URL.
+
+Railway commands:
+
+```bash
+npm install -g @railway/cli
+railway login
+railway link
+railway up
+```
+
+Fly.io commands:
+
+```bash
+curl -L https://fly.io/install.sh | sh
+flyctl auth login
+flyctl launch --dockerfile Dockerfile
+flyctl deploy
 ```
 
 ## Docker Compose (full stack)

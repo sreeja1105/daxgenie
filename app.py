@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import requests
 from dotenv import load_dotenv
-import google.generativeai as genai
+import google.genai as genai
 import time
 
 # Load API key from .env
@@ -12,9 +12,9 @@ api_key = os.getenv("GEMINI_API_KEY")
 API_BACKEND_URL = os.getenv("API_BACKEND_URL", "http://localhost:8000")
 
 
-# Configure Gemini
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel('gemini-2.5-flash')
+# Configure Google GenAI client
+client = genai.Client(api_key=api_key)
+MODEL_NAME = 'gemini-2.5-flash'
 
 # ===== PROMPT TEMPLATES =====
 GENERATE_DAX_PROMPT = """You are DAXGenie, an expert Power BI DAX assistant with deep knowledge of DAX patterns, time intelligence, calculations, and best practices.
@@ -84,8 +84,11 @@ Important rules:
 def call_gemini(prompt: str) -> str:
     """Send prompt to Gemini and return the response."""
     try:
-        response = model.generate_content(prompt)
-        return response.text
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=prompt,
+        )
+        return response.text or ""
     except Exception as e:
         return f"❌ Error calling Gemini: {str(e)}"
 

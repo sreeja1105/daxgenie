@@ -19,11 +19,11 @@ def check_python_version():
 
 def check_dependencies():
     """Check that required packages are installed"""
-    required = ["streamlit", "fastapi", "uvicorn", "google.generativeai", "pytest"]
+    required = ["streamlit", "fastapi", "uvicorn", "google.genai", "pytest"]
     missing = []
     for pkg in required:
         try:
-            __import__(pkg.replace("-", "_"))
+            __import__(pkg)
         except ImportError:
             missing.append(pkg)
     
@@ -55,7 +55,7 @@ def check_syntax():
     files = ["app.py", "api.py"]
     for fname in files:
         try:
-            with open(fname) as f:
+            with open(fname, encoding="utf-8") as f:
                 compile(f.read(), fname, "exec")
         except SyntaxError as e:
             print(f"❌ Syntax error in {fname}: {e}")

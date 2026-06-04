@@ -1,0 +1,8 @@
+{
+  "name": "daxgenie",
+  "build": {
+    "builder": "dockerfile",
+    "dockerfilePath": "Dockerfile"
+  },
+  "plugins": []
+}
