@@ -1,11 +1,16 @@
 import streamlit as st
 import os
+import requests
 from dotenv import load_dotenv
 import google.generativeai as genai
+import time
 
 # Load API key from .env
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
+# Optional: URL for the local API backend (FastAPI). If set, Streamlit can POST to it.
+API_BACKEND_URL = os.getenv("API_BACKEND_URL", "http://localhost:8000")
+
 
 # Configure Gemini
 genai.configure(api_key=api_key)
@@ -85,6 +90,19 @@ def call_gemini(prompt: str) -> str:
         return f"❌ Error calling Gemini: {str(e)}"
 
 
+def call_api(endpoint: str, text: str) -> str:
+    """Call the local FastAPI backend and return the `result` string or raise."""
+    url = f"{API_BACKEND_URL.rstrip('/')}/{endpoint.lstrip('/') }"
+    try:
+        r = requests.post(url, json={"text": text}, timeout=30)
+    except Exception as e:
+        return f"❌ Error calling local API at {url}: {e}"
+    if r.status_code != 200:
+        return f"❌ API returned {r.status_code}: {r.text}"
+    data = r.json()
+    return data.get("result", "")
+
+
 # ===== STREAMLIT UI =====
 st.set_page_config(
     page_title="DAXGenie | AI-powered DAX Assistant",
@@ -125,47 +143,100 @@ mode = st.radio(
     horizontal=True
 )
 
+# Sidebar option: prefer local API if available
+use_api = st.sidebar.checkbox("Use local API backend (FastAPI)", value=False)
+st.sidebar.markdown(f"**API URL:** {API_BACKEND_URL}")
+
 st.write("")
 
 # ===== GENERATE MODE =====
 if mode == " Generate a DAX formula":
+    # Example prompts to help demo the app quickly
+    EXAMPLE_PROMPTS = {
+        "": "",
+        "Year-over-Year Growth (Sales)": "Calculate year-over-year sales growth percentage for the current selection.",
+        "Running Total (Sales)": "Calculate a running total of Sales[Amount] up to the current date",
+        "Sales Last 30 Days": "Calculate total sales for the last 30 days ending at the selected date",
+        "3-month Rolling Average Sales": "Calculate a 3-month rolling average of Sales[Amount]",
+        "Top 5 Products by Sales": "Return the top 5 products by sales amount"
+    }
+
+    choice = st.selectbox("Pick a demo prompt (or write your own):", list(EXAMPLE_PROMPTS.keys()))
+    if "user_request" not in st.session_state:
+        st.session_state["user_request"] = ""
+    col_ex, col_btn = st.columns([4,1])
+    with col_btn:
+        if st.button("Use example prompt") and choice:
+            st.session_state["user_request"] = EXAMPLE_PROMPTS[choice]
+
     user_request = st.text_area(
         "Describe the calculation you need in plain English:",
+        value=st.session_state.get("user_request", ""),
         placeholder="Example: Calculate year-over-year sales growth percentage, with rolling 3-month average for smoothing",
-        height=130
+        height=130,
+        key="user_request_area"
     )
-    
+
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
         generate_clicked = st.button(" Generate DAX", type="primary", use_container_width=True)
-    
+
     if generate_clicked:
         if user_request.strip():
             with st.spinner("🧞 DAXGenie is thinking..."):
                 prompt = GENERATE_DAX_PROMPT.format(user_request=user_request)
-                response = call_gemini(prompt)
+                start = time.time()
+                if use_api:
+                    response = call_api("generate", prompt)
+                else:
+                    response = call_gemini(prompt)
+                latency_ms = int((time.time() - start) * 1000)
             st.markdown(response)
+            st.caption(f"Response time: {latency_ms} ms")
         else:
             st.warning("Please describe what you need first.")
 
 # ===== EXPLAIN MODE =====
 else:
+    EXAMPLE_DAX = {
+        "": "",
+        "Simple SUM example": "SUM(Sales[Amount])",
+        "Year-to-date (YTD) Sales": "CALCULATE(SUM(Sales[Amount]), DATESYTD(Calendar[Date]))",
+        "Previous Year Sales": "CALCULATE([Total Sales], SAMEPERIODLASTYEAR(Calendar[Date]))"
+    }
+
+    choice = st.selectbox("Pick an example DAX formula:", list(EXAMPLE_DAX.keys()))
+    if "dax_formula" not in st.session_state:
+        st.session_state["dax_formula"] = ""
+    col_ex, col_btn = st.columns([4,1])
+    with col_btn:
+        if st.button("Use example formula") and choice:
+            st.session_state["dax_formula"] = EXAMPLE_DAX[choice]
+
     dax_formula = st.text_area(
         "Paste the DAX formula you want to understand:",
+        value=st.session_state.get("dax_formula", ""),
         placeholder="Example: CALCULATE(SUM(Sales[Amount]), DATEADD(Calendar[Date], -1, YEAR))",
-        height=130
+        height=130,
+        key="dax_formula_area"
     )
-    
+
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
         explain_clicked = st.button(" Explain DAX", type="primary", use_container_width=True)
-    
+
     if explain_clicked:
         if dax_formula.strip():
             with st.spinner("🧞 DAXGenie is analyzing your formula..."):
                 prompt = EXPLAIN_DAX_PROMPT.format(dax_formula=dax_formula)
-                response = call_gemini(prompt)
+                start = time.time()
+                if use_api:
+                    response = call_api("explain", prompt)
+                else:
+                    response = call_gemini(prompt)
+                latency_ms = int((time.time() - start) * 1000)
             st.markdown(response)
+            st.caption(f"Response time: {latency_ms} ms")
         else:
             st.warning("Please paste a DAX formula first.")
 
