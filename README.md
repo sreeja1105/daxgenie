@@ -127,6 +127,16 @@ docker compose up --build
 - FastAPI: http://localhost:8000/docs (interactive API docs)
 - FastAPI health: http://localhost:8000/healthz
 
+## Live Demo
+
+After deploying DAXGenie to a public host, update this section with the live URL so viewers and reviewers can access the running app.
+
+Example:
+
+[Try DAXGenie online](https://daxgenie-example.onrender.com)
+
+If you deploy the backend separately, make sure `API_BACKEND_URL` points to the deployed FastAPI service.
+
 ## Deploy to the cloud
 
 See [DEPLOY.md](DEPLOY.md) for step-by-step deployment guides to Render, Railway, or Fly.io.
