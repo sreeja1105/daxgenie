@@ -87,6 +87,56 @@ Important rules:
 - If you notice anything unusual or potential issues with the formula, flag it
 - Output ONLY the sections above."""
 
+OPTIMIZE_DAX_PROMPT = """You are DAXGenie, an expert Power BI DAX performance specialist with deep knowledge of query plans, storage engine vs formula engine behavior, and DAX best practices.
+
+A Power BI analyst wants you to review and optimize this DAX formula:
+
+```dax
+{dax_formula}
+```
+
+Provide your response in EXACTLY this format (use markdown):
+
+### Performance Rating
+
+[Choose ONE: Excellent | Good | Needs Improvement | Poor]
+
+[One sentence explaining the rating.]
+
+### Performance Issues
+
+[List each issue clearly, or write "No major performance issues found." Examples:
+- Critical: ALL() with FILTER forces a full table scan on large datasets
+- Significant: Missing VAR causes the same calculation to run multiple times
+- Minor: Could use DIVIDE() for safer division]
+
+### Best Practice Violations
+
+[List violations, or write "Follows DAX best practices." Examples:
+- Should use DIVIDE() instead of "/" to handle division by zero
+- Consider VAR to cache repeated calculations
+- Use SAMEPERIODLASTYEAR() instead of manual date manipulation]
+
+### Optimized Formula
+
+```dax
+[Your improved version of the formula]
+```
+
+### What Changed and Why
+
+[Bullet points explaining each change:
+- Changed X to Y because [performance/safety/readability reason]
+- Added VAR Z to cache the calculation that was running twice
+- Replaced ALL() with ALLSELECTED() to preserve user filters]
+
+Important rules:
+- Be specific, not generic
+- Focus on REAL DAX performance patterns (storage engine vs formula engine, context transitions, iterator overhead)
+- If the formula is already well-optimized, say so honestly - do not invent issues
+- Use modern DAX syntax in the rewrite
+- Output ONLY the sections above. No extra commentary."""
+
 
 # ===== HELPER FUNCTIONS =====
 def call_gemini(prompt: str) -> str:
@@ -155,7 +205,7 @@ st.markdown("""
         AI-powered DAX formula assistant for Power BI analysts
     </p>
     <p style="color: #888; font-size: 0.9rem; margin-top: 0.3rem;">
-        Generate complex DAX from plain English &middot; Explain existing formulas &middot; Free & open source
+        Generate &middot; Explain &middot; Optimize DAX formulas &middot; Free & open source
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -165,7 +215,7 @@ st.divider()
 # ===== MODE SELECTOR =====
 mode = st.radio(
     "**What would you like to do?**",
-    ["Generate a DAX formula", "Explain an existing DAX formula"],
+    ["Generate a DAX formula", "Explain an existing DAX formula", "Optimize an existing DAX formula"],
     horizontal=True
 )
 
@@ -188,7 +238,6 @@ st.write("")
 
 # ===== GENERATE MODE =====
 if mode == "Generate a DAX formula":
-    # Example prompts to help demo the app quickly
     EXAMPLE_PROMPTS = {
         "": "",
         "Year-over-Year Growth (Sales)": "Calculate year-over-year sales growth percentage for the current selection.",
@@ -198,11 +247,11 @@ if mode == "Generate a DAX formula":
         "Top 5 Products by Sales": "Return the top 5 products by sales amount"
     }
 
-    choice = st.selectbox("Pick a demo prompt (or write your own):", list(EXAMPLE_PROMPTS.keys()))
+    choice = st.selectbox("Pick a demo prompt (or write your own):", list(EXAMPLE_PROMPTS.keys()), key="generate_select")
 
     col_ex, col_btn = st.columns([4, 1])
     with col_btn:
-        if st.button("Use example prompt") and choice:
+        if st.button("Use example prompt", key="generate_use_example") and choice:
             st.session_state["user_request_area"] = EXAMPLE_PROMPTS[choice]
             st.rerun()
 
@@ -215,7 +264,7 @@ if mode == "Generate a DAX formula":
 
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        generate_clicked = st.button("Generate DAX", type="primary", use_container_width=True)
+        generate_clicked = st.button("Generate DAX", type="primary", use_container_width=True, key="generate_button")
 
     if generate_clicked:
         if user_request.strip():
@@ -233,7 +282,7 @@ if mode == "Generate a DAX formula":
             st.warning("Please describe what you need first.")
 
 # ===== EXPLAIN MODE =====
-else:
+elif mode == "Explain an existing DAX formula":
     EXAMPLE_DAX = {
         "": "",
         "Simple SUM example": "SUM(Sales[Amount])",
@@ -241,11 +290,11 @@ else:
         "Previous Year Sales": "CALCULATE([Total Sales], SAMEPERIODLASTYEAR(Calendar[Date]))"
     }
 
-    choice = st.selectbox("Pick an example DAX formula:", list(EXAMPLE_DAX.keys()))
+    choice = st.selectbox("Pick an example DAX formula:", list(EXAMPLE_DAX.keys()), key="explain_select")
 
     col_ex, col_btn = st.columns([4, 1])
     with col_btn:
-        if st.button("Use example formula") and choice:
+        if st.button("Use example formula", key="explain_use_example") and choice:
             st.session_state["dax_formula_area"] = EXAMPLE_DAX[choice]
             st.rerun()
 
@@ -258,7 +307,7 @@ else:
 
     col1, col2, col3 = st.columns([1, 1, 1])
     with col2:
-        explain_clicked = st.button("Explain DAX", type="primary", use_container_width=True)
+        explain_clicked = st.button("Explain DAX", type="primary", use_container_width=True, key="explain_button")
 
     if explain_clicked:
         if dax_formula.strip():
@@ -267,6 +316,50 @@ else:
                 start = time.time()
                 if use_api:
                     response = call_api("explain", prompt)
+                else:
+                    response = call_gemini(prompt)
+                latency_ms = int((time.time() - start) * 1000)
+                st.markdown(response)
+                st.caption(f"Response time: {latency_ms} ms")
+        else:
+            st.warning("Please paste a DAX formula first.")
+
+# ===== OPTIMIZE MODE =====
+else:
+    EXAMPLE_OPTIMIZE = {
+        "": "",
+        "Slow time intelligence (manual date filter)": "CALCULATE(SUM(Sales[Amount]), FILTER(ALL(Calendar), Calendar[Date] <= MAX(Calendar[Date]) && YEAR(Calendar[Date]) = YEAR(MAX(Calendar[Date]))))",
+        "Unsafe division": "Sales[Profit] / Sales[Revenue]",
+        "Repeated calculation (no VAR)": "IF(SUM(Sales[Amount]) > 1000, SUM(Sales[Amount]) * 0.1, SUM(Sales[Amount]) * 0.05)",
+        "Heavy FILTER on full table": "CALCULATE(SUM(Sales[Amount]), FILTER(Sales, Sales[Region] = \"North\"))"
+    }
+
+    choice = st.selectbox("Pick an example DAX to optimize:", list(EXAMPLE_OPTIMIZE.keys()), key="optimize_select")
+
+    col_ex, col_btn = st.columns([4, 1])
+    with col_btn:
+        if st.button("Use example DAX", key="optimize_use_example") and choice:
+            st.session_state["optimize_dax_area"] = EXAMPLE_OPTIMIZE[choice]
+            st.rerun()
+
+    dax_to_optimize = st.text_area(
+        "Paste a DAX formula to optimize:",
+        placeholder="Example: CALCULATE(SUM(Sales[Amount]), FILTER(ALL(Calendar), Calendar[Date] <= MAX(Calendar[Date])))",
+        height=130,
+        key="optimize_dax_area"
+    )
+
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        optimize_clicked = st.button("Optimize DAX", type="primary", use_container_width=True, key="optimize_button")
+
+    if optimize_clicked:
+        if dax_to_optimize.strip():
+            with st.spinner("DAXGenie is analyzing performance..."):
+                prompt = OPTIMIZE_DAX_PROMPT.format(dax_formula=dax_to_optimize)
+                start = time.time()
+                if use_api:
+                    response = call_api("optimize", prompt)
                 else:
                     response = call_gemini(prompt)
                 latency_ms = int((time.time() - start) * 1000)
@@ -291,11 +384,12 @@ st.markdown("""
 with st.sidebar:
     st.markdown("### About DAXGenie")
     st.markdown("""
-    A free, open-source AI tool that helps Power BI analysts work faster with DAX:
+    A free, open-source AI tool that helps Power BI analysts work faster with DAX.
 
-    - Generate complex DAX from plain English
-    - Decode and explain existing formulas
-    - Built to bridge BI and modern AI
+    Three modes:
+    - **Generate** complex DAX from plain English
+    - **Explain** existing DAX formulas in detail
+    - **Optimize** slow or unsafe DAX for better performance
     """)
 
     st.divider()

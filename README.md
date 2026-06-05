@@ -1,197 +1,172 @@
-# daxgenie
-AI-powered DAX formula assistant for Power BI
+# DAXGenie
 
-## Overview
+**AI-powered DAX formula assistant for Power BI analysts**
 
-DAXGenie is an open-source Streamlit app that helps Power BI analysts:
+Generate complex DAX formulas from plain English. Explain existing formulas in seconds. Optimize slow DAX for better performance. Free and open source.
 
-- Generate DAX formulas from plain-English descriptions
-- Explain and break down existing DAX formulas
+**Live demo:** [daxgenie-sreeja.streamlit.app](https://daxgenie-sreeja.streamlit.app)
 
-It integrates with an LLM backend using the Google Gemini Developer API via the official `google-genai` SDK in `app.py` and is designed as a small, shareable portfolio piece.
+---
+
+## What is DAXGenie
+
+DAXGenie is a free, open-source AI assistant built to help Power BI analysts work faster with DAX formulas, without paying for enterprise licenses.
+
+Whether you struggle to understand an existing formula, want to write one for a specific business question, or wonder why your measure is slow, DAXGenie addresses each of these problems with a dedicated mode.
+
+---
+
+## Three Modes
+
+**Generate Mode**
+Describe a calculation in plain English. Get a working DAX formula with explanation, pitfalls to watch for, and example usage.
+
+**Explain Mode**
+Paste an existing DAX formula. Get a step-by-step breakdown of what each function does, the result it returns, and the business use cases it fits.
+
+**Optimize Mode**
+Paste a slow or unsafe DAX formula. Get a performance rating, performance issues identified, best practice violations flagged, and an optimized rewrite with explanations of each change.
+
+---
+
+## Live Deployments
+
+DAXGenie runs on two deployment platforms, demonstrating different architectural approaches.
+
+| Platform | Architecture | URL |
+|---|---|---|
+| Streamlit Community Cloud | Streamlit with direct Gemini API call | [daxgenie-sreeja.streamlit.app](https://daxgenie-sreeja.streamlit.app) |
+| Render | Streamlit and FastAPI backend in a Docker container | [daxgenie.onrender.com](https://daxgenie.onrender.com) |
+
+The Streamlit Cloud deployment uses a serverless approach with direct LLM calls, optimized for instant response time.
+
+The Render deployment showcases a production-style architecture with a separated FastAPI backend, demonstrating Docker containerization and microservices patterns.
+
+---
 
 ## Features
 
-- Natural language → DAX generation
-- Formula explanation and step-by-step breakdown
-- Streamlit UI for quick demos
+- DAX generation from plain English with comments and explanations
+- DAX explanation with step-by-step function breakdown
+- DAX optimization with performance analysis and rewrite suggestions
+- Best practices applied (Calendar tables, VAR/RETURN structures, DIVIDE for safe division)
+- Pitfall warnings for common DAX mistakes
+- Completely free with no user subscription or API costs
+- MIT licensed and open to contributions
 
-## Demo
+---
 
-Preview the app (placeholder demo):
+## Tech Stack
 
-![DAXGenie demo](assets/demo.gif)
+| Layer | Technology |
+|---|---|
+| Frontend | Streamlit |
+| Backend | Python 3.12 with FastAPI |
+| AI model | Google Gemini 2.5 Flash |
+| Container | Docker |
+| CI/CD | GitHub Actions |
+| Deployment | Streamlit Community Cloud and Render |
+| License | MIT |
 
-Replace `assets/demo.gif` with a short screen recording (MP4/GIF) showing the Generate and Explain flows.
+---
 
-How to record a short demo:
+## Run Locally
 
-- Keep the demo under 20 seconds.
-- Show entering a prompt, clicking "Generate DAX", and the produced formula.
-- Then paste a DAX formula and click "Explain DAX" to show the explanation.
-- Optimize for clarity: highlight the input and the resulting formula in the video/GIF.
+DAXGenie can be set up on a local machine in a few minutes.
 
-## Run locally
+### Prerequisites
 
-1. Copy `.env.example` to `.env` and set `GEMINI_API_KEY`.
-2. Create a virtual environment and install dependencies:
+- Python 3.10 or higher
+- A free [Google Gemini API key](https://aistudio.google.com/apikey)
 
-```bash
+### Setup
+
+```
+git clone https://github.com/sreeja1105/daxgenie.git
+cd daxgenie
+
 python -m venv venv
-venv\Scripts\activate    # Windows
+source venv/bin/activate    # macOS or Linux
+venv\Scripts\activate       # Windows
+
 pip install -r requirements.txt
-```
 
-The app now uses the official `google-genai` package for Gemini API access.
+echo "GEMINI_API_KEY=your-key-here" > .env
 
-3. (Optional) Validate the setup:
-
-```bash
-python validate_setup.py
-```
-
-4. Run the app:
-
-```bash
 streamlit run app.py
 ```
 
-Open http://localhost:8501 to view the demo.
+Then open `http://localhost:8501` in your browser.
 
-When you enable the local API backend in the Streamlit sidebar, DAXGenie will show the FastAPI backend health status and call the backend at `API_BACKEND_URL`.
+### Run with FastAPI Backend
 
-## Example prompts
+To run the Streamlit frontend together with the FastAPI backend locally:
 
-Use the example prompts in the Streamlit UI (select a prompt and click "Use example prompt") or paste your own. Example natural-language prompts:
+```
+# In one terminal, start the FastAPI backend
+python api.py
 
-- "Calculate year-over-year sales growth percentage for the current selection."
-- "Calculate total sales for the last 30 days ending at the selected date"
-- "Calculate a 3-month rolling average of Sales[Amount]"
-
-Example DAX formulas for the Explain mode:
-
-- `SUM(Sales[Amount])`
-- `CALCULATE(SUM(Sales[Amount]), DATESYTD(Calendar[Date]))`
-- `CALCULATE([Total Sales], SAMEPERIODLASTYEAR(Calendar[Date]))`
-
-
-## Docker
-
-Build and run the container:
-
-```bash
-docker build -t daxgenie:latest .
-docker run -p 8501:8501 --env-file .env daxgenie:latest
+# In another terminal, enable local API mode and start Streamlit
+echo "LOCAL_DEV=true" >> .env
+streamlit run app.py
 ```
 
-## Render deployment
+This will reveal the optional local API toggle in the sidebar.
 
-A `render.yaml` file is included for Render deployments. It configures both the `daxgenie-api` and `daxgenie-web` services, with the web app pointing to the API backend at `http://daxgenie-api:8000`.
+---
 
-## Other deployment options
+## Why DAXGenie
 
-- `railway.json` is included to help Railway detect the Dockerfile and deploy the app.
-- `fly.toml` is included to help Fly.io deploy the app from the same repository.
+Most BI analysts spend hours wrestling with DAX. Microsoft Copilot is available, but locked behind enterprise licenses.
 
-> Note: Railway and Fly use the same Dockerfile for the app. Set `GEMINI_API_KEY` and optional `SERVICE_API_KEY` in the platform environment settings. If you deploy the FastAPI backend separately, update `API_BACKEND_URL` to the backend's public URL.
+DAXGenie was built to bridge that gap, bringing modern AI to the daily workflow of every Power BI analyst, for free.
 
-Railway commands:
+It also serves as a demonstration of how Power BI expertise and AI engineering can combine to solve real day-to-day problems.
 
-```bash
-npm install -g @railway/cli
-railway login
-railway link
-railway up
-```
+---
 
-Fly.io commands:
+## About the Author
 
-```bash
-curl -L https://fly.io/install.sh | sh
-flyctl auth login
-flyctl launch --dockerfile Dockerfile
-flyctl deploy
-```
+**Kotha Sreeja**
 
-## Docker Compose (full stack)
+Microsoft Certified Power BI Data Analyst
+MSc Business Analytics and Data Science
 
-To run the Streamlit UI and the FastAPI backend together locally using docker-compose:
+Software engineer with 3+ years of experience in Python backend, SQL, full-stack development, and modern data tooling. Currently focused on the intersection of Business Intelligence and AI engineering.
 
-```bash
-cp .env.example .env
-# set GEMINI_API_KEY in .env
-docker compose up --build
-```
+[LinkedIn](https://www.linkedin.com/in/kotha-sreeja) | [GitHub](https://github.com/sreeja1105)
 
-- Streamlit UI: http://localhost:8501
-- FastAPI: http://localhost:8000/docs (interactive API docs)
-- FastAPI health: http://localhost:8000/healthz
-
-## Live Demo
-
-After deploying DAXGenie to a public host, update this section with the live URL so viewers and reviewers can access the running app.
-
-Example:
-
-[Try DAXGenie online](https://daxgenie-example.onrender.com)
-
-If you deploy the backend separately, make sure `API_BACKEND_URL` points to the deployed FastAPI service.
-
-## Deploy to the cloud
-
-See [DEPLOY.md](DEPLOY.md) for step-by-step deployment guides to Render, Railway, or Fly.io.
-
-
-## API Authentication & Rate Limiting
-
-The FastAPI backend supports optional API key authentication and per-key rate limiting:
-
-- **API Key**: Set `SERVICE_API_KEY` in `.env` to require the `X-API-KEY` header on all requests.
-- **Rate Limit**: Set `RATE_LIMIT_PER_MIN` (default: 60) to limit requests per key per minute.
-
-Example request with auth:
-
-```bash
-curl -X POST http://localhost:8000/generate \
-  -H "X-API-KEY: your_service_api_key_here" \
-  -H "Content-Type: application/json" \
-  -d '{"text": "Calculate YoY growth"}'
-```
-
-If `SERVICE_API_KEY` is not set, the API is open (no auth required). The rate limiter still applies to limit abuse.
-
-The FastAPI app also exposes a lightweight health endpoint at `GET /healthz` for container health checks or local status probes.
-
-## CI
-
-A basic GitHub Actions workflow is included at `.github/workflows/ci.yml` to check syntax and run tests (including rate limit tests).
-
-## Environment
-
-Required and optional environment variables:
-
-- `GEMINI_API_KEY`: Your Google Gemini API key (required)
-- `SERVICE_API_KEY`: Optional API key for protecting the FastAPI endpoints (leave blank for open API)
-- `RATE_LIMIT_PER_MIN`: Maximum requests per key per minute (default: 60)
-- `API_BACKEND_URL`: URL of the FastAPI backend (only for local Streamlit UI; default: `http://localhost:8000`)
-
-See `.env.example` for a template.
+---
 
 ## Contributing
 
-Contributions welcome — open issues or PRs. See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome. To contribute:
 
-## Validation
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit your changes (`git commit -m 'Add your feature'`)
+4. Push to the branch (`git push origin feature/your-feature`)
+5. Open a Pull Request
 
-Before deploying, run:
-
-```bash
-python validate_setup.py
-```
-
-This checks dependencies, syntax, and runs tests.
+---
 
 ## License
 
-MIT
+Distributed under the MIT License. See `LICENSE` for more information.
 
+Free to use, modify, and distribute. If you build something with DAXGenie, the author would love to hear about it.
+
+---
+
+## Support
+
+If DAXGenie is useful to you:
+
+- Star the repository on GitHub
+- Share it with other Power BI analysts
+- Connect with the author on [LinkedIn](https://www.linkedin.com/in/kotha-sreeja)
+- Report bugs or suggest features via [Issues](https://github.com/sreeja1105/daxgenie/issues)
+
+---
+
+Built for the Power BI community by [Kotha Sreeja](https://www.linkedin.com/in/kotha-sreeja).
